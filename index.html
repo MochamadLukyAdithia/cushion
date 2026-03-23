@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PosturSeat</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=SF+Pro+Display:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antialiased; }
+
+:root {
+  --bg: #0a0a0f;
+  --surface: #111118;
+  --card: #17171f;
+  --card2: #1e1e28;
+  --card3: #252530;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --accent: #00e5a0;
+  --accent2: #00c87a;
+  --accent-glow: rgba(0,229,160,0.15);
+  --warn: #ff9f43;
+  --warn-dim: rgba(255,159,67,0.1);
+  --crit: #ff5e5e;
+  --crit-dim: rgba(255,94,94,0.1);
+  --blue: #5b8ff9;
+  --blue-dim: rgba(91,143,249,0.1);
+  --purple: #a78bfa;
+  --purple-dim: rgba(167,139,250,0.1);
+  --text: #f4f4ff;
+  --text2: #9898b0;
+  --text3: #5a5a72;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ── PHONE SHELL ── */
+.phone {
+  width: min(390px, 100vw);
+  height: min(844px, 100vh);
+  background: var(--bg);
+  border-radius: min(48px, 0px);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 60px 120px rgba(0,0,0,0.9);
+}
+
+@media (max-width: 390px) {
+  .phone { border-radius: 0; height: 100vh; width: 100vw; }
+}
+
+/* ── STATUS BAR ── */
+.statusbar {
+  height: 52px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 24px 10px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 50;
+}
+
+.status-time { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+.status-right { display: flex; gap: 6px; align-items: center; }
+
+/* ── MAIN LAYOUT ── */
+.app-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── SCREENS ── */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+  visibility: hidden;
+}
+
+.screen.active {
+  transform: translateX(0);
+  visibility: visible;
+  z-index: 10;
+}
+
+.screen.prev {
+  transform: translateX(-30%);
+  visibility: visible;
+  z-index: 5;
+}
+
+/* ── SCROLL CONTENT ── */
+.scroll-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 0 16px 16px;
+}
+.scroll-content::-webkit-scrollbar { display: none; }
+
+/* ── NAV BAR ── */
+.bottomnav {
+  flex-shrink: 0;
+  height: calc(64px + var(--safe-bottom));
+  padding: 0 8px var(--safe-bottom);
+  display: flex;
+  align-items: flex-start;
+  background: rgba(17,17,24,0.96);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid var(--border);
+  position: relative;
+  z-index: 20;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 0;
+  cursor: pointer;
+  color: var(--text3);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  transition: color 0.2s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.nav-item.active { color: var(--accent); }
+
+.nav-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* active indicator pill */
+.nav-item.active .nav-icon::before {
+  content: '';
+  position: absolute;
+  inset: -4px -8px;
+  background: var(--accent-glow);
+  border-radius: 12px;
+}
+
+/* ── CARDS ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 18px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
+}
+.card:active { transform: scale(0.985); opacity: 0.9; }
+
+.card-inert { cursor: default; }
+.card-inert:active { transform: none; opacity: 1; }
+
+.mini-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.mini-card:active { transform: scale(0.97); opacity: 0.85; }
+
+/* ── SECTION LABEL ── */
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text3);
+  padding: 8px 2px 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── CHIPS / PILLS ── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+.chip-green { background: rgba(0,229,160,0.12); color: var(--accent); border: 1px solid rgba(0,229,160,0.2); }
+.chip-warn { background: var(--warn-dim); color: var(--warn); border: 1px solid rgba(255,159,67,0.2); }
+.chip-crit { background: var(--crit-dim); color: var(--crit); border: 1px solid rgba(255,94,94,0.2); }
+.chip-blue { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(91,143,249,0.2); }
+.chip-purple { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(167,139,250,0.2); }
+.chip-gray { background: rgba(255,255,255,0.06); color: var(--text2); border: 1px solid var(--border); }
+
+/* ── LIVE DOT ── */
+.live-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,229,160,0.4); }
+  50% { box-shadow: 0 0 0 5px rgba(0,229,160,0); }
+}
+
+/* ── RING ── */
+.ring-container {
+  position: relative;
+  width: 148px;
+  height: 148px;
+}
+.ring-svg { transform: rotate(-90deg); }
+.ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.ring-score {
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+  letter-spacing: -2px;
+}
+.ring-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 3px; }
+
+@keyframes drawRing {
+  from { stroke-dashoffset: 420; }
+  to { stroke-dashoffset: var(--target); }
+}
+.ring-track { animation: drawRing 1.6s cubic-bezier(0.16,1,0.3,1) forwards; animation-delay: 0.2s; stroke-dashoffset: 420; }
+
+/* ── HEATMAP ── */
+.cushion {
+  width: 110px;
+  height: 110px;
+  border-radius: 14px;
+  background: #111118;
+  border: 1px solid var(--border2);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.heat-zone {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(10px);
+  transition: all 0.6s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── BAR ── */
+.bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 100px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 1s ease;
+}
+
+/* ── TOGGLE ── */
+.toggle {
+  width: 48px;
+  height: 28px;
+  border-radius: 100px;
+  background: var(--card3);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.3s;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+.toggle.on { background: var(--accent); border-color: var(--accent); }
+.toggle::after {
+  content: '';
+  position: absolute;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  top: 3px; left: 3px;
+  transition: left 0.3s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.toggle.on::after { left: 25px; }
+
+/* ── BUTTON ── */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 14px 20px;
+  border-radius: 14px;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: #000; }
+.btn-secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+.btn-danger { background: var(--crit-dim); color: var(--crit); border: 1px solid rgba(255,94,94,0.2); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+
+.modal-sheet {
+  width: 100%;
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  padding: 14px 20px calc(32px + var(--safe-bottom));
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: 88%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.modal-sheet::-webkit-scrollbar { display: none; }
+.modal-overlay.open .modal-sheet { transform: translateY(0); }
+
+.modal-handle {
+  width: 36px; height: 4px;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.15);
+  margin: 0 auto 20px;
+}
+
+/* ── NOTIFICATION TOAST ── */
+.toast {
+  position: absolute;
+  top: 60px;
+  left: 12px;
+  right: 12px;
+  background: var(--card2);
+  border: 1px solid rgba(255,159,67,0.25);
+  border-radius: 16px;
+  padding: 13px 14px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  z-index: 90;
+  transform: translateY(-120%);
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  cursor: pointer;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ── EXERCISE ITEM ── */
+.exercise-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.exercise-item:active { transform: scale(0.98); opacity: 0.9; }
+
+/* ── TIMELINE ── */
+.tl-item {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 18px;
+  position: relative;
+}
+.tl-item::before {
+  content: '';
+  position: absolute;
+  left: 13px; top: 28px; bottom: 0;
+  width: 1px;
+  background: var(--border);
+}
+.tl-item:last-child::before { display: none; }
+.tl-dot {
+  width: 27px; height: 27px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── INPUT ── */
+.input-field {
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 13px 14px;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text);
+  width: 100%;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.input-field:focus { border-color: rgba(0,229,160,0.4); }
+.input-field::placeholder { color: var(--text3); }
+
+textarea.input-field { resize: none; line-height: 1.5; }
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+/* ── STREAK ── */
+.streak-day {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  cursor: default;
+  transition: transform 0.2s;
+}
+.streak-day.done { background: rgba(0,229,160,0.12); color: var(--accent); border: 1px solid rgba(0,229,160,0.2); }
+.streak-day.miss { background: rgba(255,255,255,0.03); color: var(--text3); border: 1px solid var(--border); }
+.streak-day.today { background: var(--accent); color: #000; font-weight: 800; box-shadow: 0 0 12px rgba(0,229,160,0.4); }
+
+/* ── CONTEXT CARD ── */
+.ctx-option {
+  background: var(--card2);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.ctx-option:active { transform: scale(0.96); }
+.ctx-option.selected {
+  background: rgba(0,229,160,0.08);
+  border-color: var(--accent);
+}
+.ctx-option.selected .ctx-icon { background: rgba(0,229,160,0.15); }
+.ctx-icon {
+  width: 44px; height: 44px;
+  border-radius: 13px;
+  background: rgba(255,255,255,0.05);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.ctx-label { font-size: 12px; font-weight: 600; color: var(--text2); }
+.ctx-option.selected .ctx-label { color: var(--accent); }
+
+/* ── PROFILE ── */
+.avatar-ring {
+  width: 72px; height: 72px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(0,229,160,0.15), rgba(91,143,249,0.15));
+  border: 1.5px solid rgba(0,229,160,0.25);
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.anim { animation: fadeSlideUp 0.4s ease both; }
+.anim-d1 { animation-delay: 0.05s; }
+.anim-d2 { animation-delay: 0.1s; }
+.anim-d3 { animation-delay: 0.15s; }
+.anim-d4 { animation-delay: 0.2s; }
+.anim-d5 { animation-delay: 0.25s; }
+
+/* ── SCROLLABLE ROW ── */
+.scroll-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.scroll-row::-webkit-scrollbar { display: none; }
+
+/* ── POSTURE BTN ── */
+.posture-btn {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--text2);
+  transition: all 0.15s;
+  font-family: var(--font);
+}
+.posture-btn.active {
+  background: rgba(0,229,160,0.1);
+  border-color: rgba(0,229,160,0.3);
+  color: var(--accent);
+}
+.posture-btn:active { transform: scale(0.95); }
+
+/* Context Banner */
+.ctx-banner {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 13px 15px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ctx-banner:active { transform: scale(0.985); }
+.ctx-banner-icon {
+  width: 38px; height: 38px;
+  border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Duration selector */
+.dur-row { display: flex; gap: 6px; }
+.dur-btn {
+  flex: 1;
+  padding: 8px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+.dur-btn.selected { background: rgba(0,229,160,0.1); border-color: rgba(0,229,160,0.35); color: var(--accent); }
+.dur-btn:active { transform: scale(0.96); }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- STATUS BAR -->
+  <div class="statusbar">
+    <span class="status-time" id="statusTime">09:41</span>
+    <div class="status-right">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="var(--text)">
+        <rect x="0" y="5" width="2.5" height="7" rx="0.8" opacity="0.35"/>
+        <rect x="4" y="3" width="2.5" height="9" rx="0.8" opacity="0.6"/>
+        <rect x="8" y="1" width="2.5" height="11" rx="0.8"/>
+        <rect x="13.5" y="3" width="2" height="6" rx="0.6" fill="none" stroke="var(--text)" stroke-width="1"/>
+        <rect x="14" y="5" width="1" height="2" rx="0.3" fill="var(--text)" opacity="0.7"/>
+      </svg>
+      <svg width="15" height="12" viewBox="0 0 15 12" fill="none">
+        <path d="M7.5 3.5C9.5 3.5 11.3 4.3 12.6 5.6L14 4.2C12.3 2.5 10 1.5 7.5 1.5C5 1.5 2.7 2.5 1 4.2L2.4 5.6C3.7 4.3 5.5 3.5 7.5 3.5Z" fill="var(--text)"/>
+        <path d="M7.5 6.5C8.8 6.5 9.9 7 10.7 7.9L12.1 6.5C10.9 5.3 9.3 4.5 7.5 4.5C5.7 4.5 4.1 5.3 2.9 6.5L4.3 7.9C5.1 7 6.2 6.5 7.5 6.5Z" fill="var(--text)"/>
+        <circle cx="7.5" cy="10" r="1.5" fill="var(--text)"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="app-body">
+
+    <!-- ══════════ SCREEN: HOME ══════════ -->
+    <div class="screen active" id="screen-home">
+      <div class="scroll-content">
+
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0 14px" class="anim">
+          <div>
+            <div style="font-size:22px;font-weight:800;letter-spacing:-0.5px">Selamat pagi 👋</div>
+            <div style="font-size:13px;color:var(--text2);margin-top:1px">Fauzan • Senin, 23 Mar</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);padding:6px 11px;border-radius:100px">
+            <div class="live-dot"></div>
+            <span style="font-size:11px;font-weight:600;color:var(--accent)">Terhubung</span>
+          </div>
+        </div>
+
+        <!-- Context Banner -->
+        <div class="ctx-banner anim anim-d1" id="ctxBanner" onclick="openModal('modal-context')">
+          <div class="ctx-banner-icon" id="ctxIconWrap" style="background:var(--blue-dim)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700" id="ctxTitle">Kuliah Pagi</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:1px" id="ctxDetail">FK Semester 3 • 07:00 – 12:00</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div class="chip chip-blue" style="font-size:10px">Ubah</div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+
+        <!-- Score Ring -->
+        <div class="card anim anim-d2" onclick="openModal('modal-score')">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div>
+              <div style="font-size:16px;font-weight:700">Posture Score</div>
+              <div style="font-size:12px;color:var(--text2)">Hari ini</div>
+            </div>
+            <div class="chip chip-green" style="gap:5px">
+              <svg width="11" height="13" viewBox="0 0 14 17" fill="none">
+                <path d="M7 16C4.24 16 2 13.76 2 11c0-2.5 1.4-4.7 3.5-5.8-.1.9-.1 2.3.9 2.8C6.4 5.8 8 3.4 10 2c-.5 2.2 1.5 3.8 1.5 6 0 1.7-1.5 2.8-2.5 2.3.5 1.5-.5 2.8-.5 2.8 1.3-1 1.5-2.1 1.5-2.8C11.5 11.5 12 13 12 14.2 12 15.2 10.5 16 9.5 16H7z" fill="var(--accent)"/>
+              </svg>
+              7 Hari
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:20px">
+            <div class="ring-container" style="flex-shrink:0">
+              <svg class="ring-svg" width="148" height="148" viewBox="0 0 148 148">
+                <circle cx="74" cy="74" r="62" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="11"/>
+                <circle cx="74" cy="74" r="62" fill="none" stroke="url(#rg)" stroke-width="11"
+                  stroke-linecap="round" stroke-dasharray="390" class="ring-track" style="--target:98"/>
+                <defs>
+                  <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#00e5a0"/>
+                    <stop offset="100%" stop-color="#3b82f6"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div class="ring-center">
+                <div class="ring-score">75</div>
+                <div class="ring-label">Score</div>
+              </div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+              <div>
+                <div style="font-size:11px;color:var(--text3);margin-bottom:3px">Postur Baik</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div class="bar-track"><div class="bar-fill" style="width:73%;background:var(--accent)"></div></div>
+                  <span style="font-size:12px;font-weight:700;color:var(--accent);width:32px">73m</span>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--text3);margin-bottom:3px">Perlu Koreksi</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div class="bar-track"><div class="bar-fill" style="width:18%;background:var(--warn)"></div></div>
+                  <span style="font-size:12px;font-weight:700;color:var(--warn);width:32px">18m</span>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;background:var(--card2);border-radius:10px;padding:8px 10px;margin-top:2px">
+                <span style="font-size:11px;color:var(--text3)">Koreksi hari ini</span>
+                <span style="font-size:13px;font-weight:700;color:var(--blue)">4×</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Pressure Map -->
+        <div class="card anim anim-d3" onclick="cyclePressure()">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div>
+              <div style="font-size:15px;font-weight:700">Pressure Map</div>
+              <div style="font-size:11px;color:var(--text2)">Live dari sensor bantalan</div>
+            </div>
+            <div class="chip" id="pmChip" style="background:rgba(0,229,160,0.12);color:var(--accent);border:1px solid rgba(0,229,160,0.2)">Normal</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px">
+            <div class="cushion" id="cushion">
+              <div class="heat-zone" id="hz1" style="width:48px;height:48px;background:rgba(0,229,160,0.65);top:7px;left:7px"></div>
+              <div class="heat-zone" id="hz2" style="width:48px;height:48px;background:rgba(0,229,160,0.65);top:7px;right:7px"></div>
+              <div class="heat-zone" id="hz3" style="width:46px;height:46px;background:rgba(0,229,160,0.5);bottom:7px;left:7px"></div>
+              <div class="heat-zone" id="hz4" style="width:46px;height:46px;background:rgba(0,229,160,0.5);bottom:7px;right:7px"></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:7px" id="sensorData">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:11px;color:var(--text2)">Kiri Depan</span>
+                <span class="chip chip-green" style="font-size:10px;padding:2px 8px">48%</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:11px;color:var(--text2)">Kanan Depan</span>
+                <span class="chip chip-green" style="font-size:10px;padding:2px 8px">51%</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:11px;color:var(--text2)">Kiri Belakang</span>
+                <span class="chip chip-green" style="font-size:10px;padding:2px 8px">49%</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:11px;color:var(--text2)">Kanan Belakang</span>
+                <span class="chip chip-green" style="font-size:10px;padding:2px 8px">52%</span>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;gap:5px">
+            <button class="posture-btn active" id="pbtn-normal" onclick="setPosture('normal',event)">Normal</button>
+            <button class="posture-btn" id="pbtn-miring" onclick="setPosture('miring',event)">Miring Kiri</button>
+            <button class="posture-btn" id="pbtn-bungkuk" onclick="setPosture('bungkuk',event)">Bungkuk</button>
+            <button class="posture-btn" id="pbtn-lean" onclick="setPosture('lean',event)">Lean Back</button>
+          </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="section-label anim anim-d4">Hari Ini</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px" class="anim anim-d4">
+          <div class="mini-card" onclick="openModal('modal-streak')">
+            <div style="width:34px;height:34px;border-radius:11px;background:var(--warn-dim);display:flex;align-items:center;justify-content:center;margin-bottom:8px">
+              <svg width="18" height="20" viewBox="0 0 18 22" fill="var(--warn)">
+                <path d="M9 21C5.5 21 3 18.5 3 15.5c0-3 1.8-5.5 4.5-6.8-.1 1 .1 2.6 1.2 3.1-.1-2.5 1.7-5.3 4-6.3-.6 2.3 1.6 4.2 1.6 6.5 0 2-1.7 3.5-2.7 3.1.6 1.7-.6 3.1-.6 3.1 1.4-1.1 1.7-2.5 1.7-3.1.9 1.1.7 2.5.7 3.6 0 .7-1 1.3-1.8 1.3H9z"/>
+              </svg>
+            </div>
+            <div style="font-size:24px;font-weight:800;color:var(--warn)">7</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:1px">Hari Streak</div>
+          </div>
+          <div class="mini-card" onclick="goTo('insight')">
+            <div style="width:34px;height:34px;border-radius:11px;background:var(--blue-dim);display:flex;align-items:center;justify-content:center;margin-bottom:8px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/>
+              </svg>
+            </div>
+            <div style="font-size:24px;font-weight:800;color:var(--blue)">61<span style="font-size:13px;font-weight:600">%</span></div>
+            <div style="font-size:11px;color:var(--text3);margin-top:1px">Postur Baik Minggu Ini</div>
+          </div>
+          <div class="mini-card" onclick="openModal('modal-twin')">
+            <div style="width:34px;height:34px;border-radius:11px;background:var(--purple-dim);display:flex;align-items:center;justify-content:center;margin-bottom:8px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div style="font-size:24px;font-weight:800;color:var(--purple)">2</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:1px">Posture Twin</div>
+          </div>
+          <div class="mini-card" onclick="openModal('modal-kfr')">
+            <div style="width:34px;height:34px;border-radius:11px;background:rgba(0,229,160,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:8px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+              </svg>
+            </div>
+            <div style="font-size:24px;font-weight:800;color:var(--accent)">OK</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:1px">Status Klinis</div>
+          </div>
+        </div>
+
+        <!-- Insight konteks -->
+        <div class="card card-inert anim anim-d5" style="background:linear-gradient(135deg,rgba(91,143,249,0.08),rgba(167,139,250,0.05));border-color:rgba(91,143,249,0.15)">
+          <div style="display:flex;gap:8px;align-items:flex-start">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" style="margin-top:2px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div style="font-size:13px;color:var(--text2);line-height:1.6">Kamu <strong style="color:var(--text)">23% lebih sering bungkuk</strong> saat kuliah pagi dibanding sesi belajar sore hari.</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom Nav -->
+      <div class="bottomnav">
+        <div class="nav-item active" onclick="goTo('home')">
+          <div class="nav-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          </div>
+          Beranda
+        </div>
+        <div class="nav-item" onclick="goTo('insight')">
+          <div class="nav-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
+          </div>
+          Insight
+        </div>
+        <div class="nav-item" onclick="goTo('exercise')">
+          <div class="nav-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+          </div>
+          Gerakan
+        </div>
+        <div class="nav-item" onclick="goTo('profile')">
+          <div class="nav-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          Profil
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ SCREEN: INSIGHT ══════════ -->
+    <div class="screen" id="screen-insight">
+      <div class="scroll-content">
+        <div style="padding:4px 0 14px;display:flex;align-items:center;justify-content:space-between" class="anim">
+          <div>
+            <div style="font-size:22px;font-weight:800;letter-spacing:-0.5px">Weekly Insight</div>
+            <div style="font-size:13px;color:var(--text2)">17 – 23 Maret 2025</div>
+          </div>
+          <div class="chip chip-blue">Minggu Ini</div>
+        </div>
+
+        <div class="card card-inert anim anim-d1">
+          <div style="font-size:15px;font-weight:700;margin-bottom:2px">Skor Harian</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:14px">7 hari terakhir</div>
+          <canvas id="weekChart" height="130"></canvas>
+        </div>
+
+        <div class="card card-inert anim anim-d2">
+          <div style="font-size:15px;font-weight:700;margin-bottom:14px">Distribusi Postur</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="font-size:12px;color:var(--text2);width:78px;flex-shrink:0">Normal</div>
+              <div class="bar-track"><div class="bar-fill" style="width:61%;background:var(--accent)"></div></div>
+              <div style="font-size:11px;font-weight:700;color:var(--accent);width:30px;text-align:right">61%</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="font-size:12px;color:var(--text2);width:78px;flex-shrink:0">Bungkuk</div>
+              <div class="bar-track"><div class="bar-fill" style="width:21%;background:var(--warn)"></div></div>
+              <div style="font-size:11px;font-weight:700;color:var(--warn);width:30px;text-align:right">21%</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="font-size:12px;color:var(--text2);width:78px;flex-shrink:0">Miring Kiri</div>
+              <div class="bar-track"><div class="bar-fill" style="width:10%;background:var(--blue)"></div></div>
+              <div style="font-size:11px;font-weight:700;color:var(--blue);width:30px;text-align:right">10%</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="font-size:12px;color:var(--text2);width:78px;flex-shrink:0">Lean Back</div>
+              <div class="bar-track"><div class="bar-fill" style="width:6%;background:var(--purple)"></div></div>
+              <div style="font-size:11px;font-weight:700;color:var(--purple);width:30px;text-align:right">6%</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="font-size:12px;color:var(--text2);width:78px;flex-shrink:0">Miring Kanan</div>
+              <div class="bar-track"><div class="bar-fill" style="width:2%;background:var(--crit)"></div></div>
+              <div style="font-size:11px;font-weight:700;color:var(--crit);width:30px;text-align:right">2%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card anim anim-d3" onclick="openModal('modal-story')">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">
+            <div style="width:30px;height:30px;border-radius:9px;background:rgba(0,229,160,0.1);display:flex;align-items:center;justify-content:center">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <div style="font-size:15px;font-weight:700">Posture Story Minggu Ini</div>
+          </div>
+          <div style="background:var(--card2);border-radius:12px;padding:13px;border-left:3px solid var(--accent)">
+            <div style="font-size:13px;line-height:1.7;color:var(--text2)">"Minggu ini kamu duduk <strong style="color:var(--text)">34 jam</strong>. Posturmu paling buruk saat kuliah Senin malam. Di <strong style="color:var(--text)">13 jam terakhir</strong>, kamu mulai membaik. Punggungmu sedang belajar."</div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:6px">
+            <button class="btn btn-primary" style="padding:9px;font-size:12px;flex:1;border-radius:11px">Bagikan</button>
+            <button class="btn btn-secondary" style="padding:9px;font-size:12px;flex:1;border-radius:11px">Simpan PDF</button>
+          </div>
+        </div>
+
+        <div class="section-label anim anim-d4">Pola Waktu Buruk</div>
+        <div class="card card-inert anim anim-d4">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:13px">Senin malam (20:00 – 23:00)</span>
+              <div class="chip chip-crit">Sering Buruk</div>
+            </div>
+            <div class="divider" style="margin:0"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:13px">Rabu pagi kuliah anatomy</span>
+              <div class="chip chip-warn">Cukup Buruk</div>
+            </div>
+            <div class="divider" style="margin:0"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:13px">Sabtu santai nonton</span>
+              <div class="chip chip-blue">Ringan</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;background:rgba(255,159,67,0.07);border:1px solid rgba(255,159,67,0.15);border-radius:12px;padding:11px;display:flex;gap:8px;align-items:flex-start">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span style="font-size:12px;color:var(--text2)">Coba duduk di kursi paling depan saat kuliah Rabu — senderannya lebih tegak.</span>
+          </div>
+        </div>
+      </div>
+      <div class="bottomnav">
+        <div class="nav-item" onclick="goTo('home')"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>Beranda</div>
+        <div class="nav-item active" onclick="goTo('insight')"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg></div>Insight</div>
+        <div class="nav-item" onclick="goTo('exercise')"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>Gerakan</div>
+        <div class="nav-item" onclick="goTo('profile')"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>Profil</div>
+      </div>
+    </div>
+
+    <!-- ══════════ SCREEN: EXERCISE ══════════ -->
+    <div class="screen" id="screen-exercise">
+      <div class="scroll-content">
+        <div style="padding:4px 0 14px" class="anim">
+          <div style="font-size:22px;font-weight:800;letter-spacing:-0.5px">Movement Snacks</div>
+          <div style="font-size:13px;color:var(--text2)">Sesuai pola posturmu</div>
+        </div>
+
+        <div class="card card-inert anim anim-d1" style="background:linear-gradient(135deg,rgba(0,229,160,0.06),rgba(91,143,249,0.06));border-color:rgba(0,229,160,0.12);display:flex;align-items:center;gap:11px">
+          <div style="width:40px;height:40px;border-radius:12px;background:rgba(0,229,160,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700">Direkomendasikan untukmu</div>
+            <div style="font-size:11px;color:var(--text2)">Berdasarkan pola bungkuk 21% minggu ini</div>
+          </div>
+        </div>
+
+        <div class="section-label anim anim-d2">Latihan Utama</div>
+
+        <div class="exercise-item anim anim-d2" onclick="openModal('modal-ex1')">
+          <div style="width:48px;height:48px;border-radius:14px;background:rgba(0,229,160,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="1.5"/><path d="M12 6v5l-3 3"/><path d="M12 11l3 3"/><path d="M9 9H6"/><path d="M18 9h-3"/><path d="M9 14l-2 4"/><path d="M15 14l2 4"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700">Chest Opening Stretch</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:1px">Untuk bungkuk kronik • 90 detik</div>
+            <div style="display:flex;gap:5px;margin-top:6px"><div class="chip chip-green" style="font-size:10px">Pemula</div><div class="chip chip-blue" style="font-size:10px">Di Kursi</div></div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+
+        <div class="exercise-item anim anim-d3" onclick="openModal('modal-ex2')">
+          <div style="width:48px;height:48px;border-radius:14px;background:var(--blue-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700">Thoracic Rotation</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:1px">Untuk punggung kaku • 2 menit</div>
+            <div style="display:flex;gap:5px;margin-top:6px"><div class="chip chip-green" style="font-size:10px">Pemula</div><div class="chip chip-blue" style="font-size:10px">Di Kursi</div></div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+
+        <div class="exercise-item anim anim-d4" onclick="openModal('modal-ex3')">
+          <div style="width:48px;height:48px;border-radius:14px;background:var(--warn-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700">Core Activation</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:1px">Untuk miring ke kiri • 90 detik</div>
+            <div style="display:flex;gap:5px;margin-top:6px"><div class="chip chip-warn" style="font-size:10px">Sedang</div><div class="chip chip-blue" style="font-size:10px">Di Kursi</div></div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+
+        <div class="section-label anim anim-d5">Lainnya</div>
+
+        <div class="exercise-item anim anim-d5" onclick="openModal('modal-ex1')">
+          <div style="width:48px;height:48px;border-radius:14px;background:var(--purple-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><path d="M12 8v4"/><path d="M9 10c-1.5 1-2 3-2 3"/><path d="M15 10c1.5 1 2 3 2 3"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700">Neck Rolls</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:1px">Untuk leher tegang • 60 detik</div>
+            <div style="display:flex;gap:5px;margin-top:6px"><div class="chip chip-green" style="font-size:10px">Pemula</div><div class="chip chip-purple" style="font-size:10px">Leher</div></div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+
+      </div>
+      <div class="bottomnav">
+        <div class="nav-item" onclick="goTo('home')"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>Beranda</div>
+        <div class="nav-item" onclick="goTo('insight')"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg></div>Insight</div>
+        <div class="nav-item active" onclick="goTo('exercise')"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>Gerakan</div>
+        <div class="nav-item" onclick="goTo('profile')"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>Profil</div>
+      </div>
+    </div>
+
+    <!-- ══════════ SCREEN: PROFILE ══════════ -->
+    <div class="screen" id="screen-profile">
+      <div class="scroll-content">
+        <div style="padding:4px 0 14px;display:flex;align-items:center;justify-content:space-between" class="anim">
+          <div style="font-size:22px;font-weight:800;letter-spacing:-0.5px">Profil</div>
+          <button class="btn btn-secondary" style="width:auto;padding:7px 14px;font-size:12px;border-radius:10px">Edit</button>
+        </div>
+
+        <div class="card card-inert anim anim-d1">
+          <div style="display:flex;align-items:center;gap:13px;margin-bottom:14px">
+            <div class="avatar-ring">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/>
+                <path d="M8 15v1a6 6 0 0 0 6 6a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/>
+              </svg>
+            </div>
+            <div>
+              <div style="font-size:18px;font-weight:800">Fauzan FK</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:2px">FK Semester 3 • Surabaya</div>
+              <div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap">
+                <div class="chip chip-green" style="font-size:10px">🔥 7 Hari</div>
+                <div class="chip chip-purple" style="font-size:10px">Posture Learner</div>
+              </div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;text-align:center">
+            <div style="padding:8px 0">
+              <div style="font-size:20px;font-weight:800;color:var(--accent)">34<span style="font-size:11px">j</span></div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Total Duduk</div>
+            </div>
+            <div style="padding:8px 0;border-left:1px solid var(--border);border-right:1px solid var(--border)">
+              <div style="font-size:20px;font-weight:800;color:var(--warn)">61<span style="font-size:11px">%</span></div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Postur Baik</div>
+            </div>
+            <div style="padding:8px 0">
+              <div style="font-size:20px;font-weight:800;color:var(--blue)">12</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Gerakan Selesai</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-label anim anim-d2">Streak Bulan Ini</div>
+        <div class="card card-inert anim anim-d2">
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            <div class="streak-day miss">1</div><div class="streak-day miss">2</div><div class="streak-day done">3</div><div class="streak-day done">4</div><div class="streak-day done">5</div><div class="streak-day miss">6</div><div class="streak-day done">7</div><div class="streak-day done">8</div><div class="streak-day done">9</div><div class="streak-day miss">10</div><div class="streak-day done">11</div><div class="streak-day done">12</div><div class="streak-day miss">13</div><div class="streak-day done">14</div><div class="streak-day done">15</div><div class="streak-day done">16</div><div class="streak-day done">17</div><div class="streak-day done">18</div><div class="streak-day done">19</div><div class="streak-day done">20</div><div class="streak-day done">21</div><div class="streak-day done">22</div><div class="streak-day today">23</div>
+          </div>
+        </div>
+
+        <div class="section-label anim anim-d3">Badge</div>
+        <div class="scroll-row anim anim-d3" style="margin-bottom:10px">
+          <div style="flex-shrink:0;text-align:center;width:76px">
+            <div style="width:60px;height:60px;border-radius:18px;background:var(--warn-dim);border:1px solid rgba(255,159,67,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 6px">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="var(--warn)"><path d="M9 21C5.5 21 3 18.5 3 15.5c0-3 1.8-5.5 4.5-6.8-.1 1 .1 2.6 1.2 3.1C8.6 9.3 10 7 12 6c-.6 2.3 1.6 4.2 1.6 6.5 0 2-1.7 3.5-2.7 3.1.6 1.7-.6 3.1-.6 3.1 1.4-1.1 1.7-2.5 1.7-3.1.9 1.1.7 2.5.7 3.6 0 .7-1 1.3-1.8 1.3H9z"/></svg>
+            </div>
+            <div style="font-size:10px;color:var(--text3)">7 Day Streak</div>
+          </div>
+          <div style="flex-shrink:0;text-align:center;width:76px">
+            <div style="width:60px;height:60px;border-radius:18px;background:var(--blue-dim);border:1px solid rgba(91,143,249,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 6px">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <div style="font-size:10px;color:var(--text3)">Posture Learner</div>
+          </div>
+          <div style="flex-shrink:0;text-align:center;width:76px">
+            <div style="width:60px;height:60px;border-radius:18px;background:rgba(0,229,160,0.1);border:1px solid rgba(0,229,160,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 6px">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div style="font-size:10px;color:var(--text3)">Movement Pro</div>
+          </div>
+          <div style="flex-shrink:0;text-align:center;width:76px;opacity:0.35">
+            <div style="width:60px;height:60px;border-radius:18px;background:var(--card2);border:1px dashed var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 6px">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.8"><polyline points="8 21 12 17 16 21"/><path d="M17 4H7v8a5 5 0 0 0 10 0V4z"/><path d="M7 7H3v3a4 4 0 0 0 4 4"/><path d="M17 7h4v3a4 4 0 0 1-4 4"/></svg>
+            </div>
+            <div style="font-size:10px;color:var(--text3)">Posture Master</div>
+          </div>
+        </div>
+
+        <div class="section-label anim anim-d4">Pengaturan</div>
+        <div class="card card-inert anim anim-d4">
+          <div style="display:flex;flex-direction:column;gap:0">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:30px;height:30px;border-radius:9px;background:var(--card2);display:flex;align-items:center;justify-content:center">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </div>
+                <div>
+                  <div style="font-size:14px;font-weight:600">Notifikasi Postur</div>
+                  <div style="font-size:11px;color:var(--text3)">Peringatan saat postur buruk</div>
+                </div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="divider" style="margin:0"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:30px;height:30px;border-radius:9px;background:var(--card2);display:flex;align-items:center;justify-content:center">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <div>
+                  <div style="font-size:14px;font-weight:600">Posture Twin</div>
+                  <div style="font-size:11px;color:var(--text3)">Tampilkan progres teman</div>
+                </div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="divider" style="margin:0"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:30px;height:30px;border-radius:9px;background:var(--card2);display:flex;align-items:center;justify-content:center">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
+                <div>
+                  <div style="font-size:14px;font-weight:600">Weekly Report</div>
+                  <div style="font-size:11px;color:var(--text3)">Laporan tiap Minggu pagi</div>
+                </div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-secondary anim anim-d5" style="margin-bottom:24px;gap:8px" onclick="openModal('modal-kfr')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          Status Klinis & KFR
+        </button>
+      </div>
+      <div class="bottomnav">
+        <div class="nav-item" onclick="goTo('home')"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div>Beranda</div>
+        <div class="nav-item" onclick="goTo('insight')"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg></div>Insight</div>
+        <div class="nav-item" onclick="goTo('exercise')"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>Gerakan</div>
+        <div class="nav-item active" onclick="goTo('profile')"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>Profil</div>
+      </div>
+    </div>
+
+    <!-- ══════════ MODALS ══════════ -->
+
+    <!-- CONTEXT MODAL (Main Feature) -->
+    <div class="modal-overlay" id="modal-context" onclick="if(event.target===this)closeModal('modal-context')">
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div style="font-size:18px;font-weight:800;margin-bottom:2px">Atur Sesi Duduk</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:18px">Pilih aktivitas yang sedang kamu lakukan agar insight lebih akurat</div>
+
+        <!-- Activity Type -->
+        <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Aktivitas</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px" id="ctxGrid">
+          <div class="ctx-option selected" onclick="selectCtx(this,'Kuliah','📚','#5b8ff9','book')">
+            <div class="ctx-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5b8ff9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            </div>
+            <div class="ctx-label">Kuliah</div>
+          </div>
+          <div class="ctx-option" onclick="selectCtx(this,'Mengerjakan Tugas','✏️','#00e5a0','edit')">
+            <div class="ctx-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </div>
+            <div class="ctx-label">Tugas</div>
+          </div>
+          <div class="ctx-option" onclick="selectCtx(this,'Kerja Kantor','💼','#a78bfa','work')">
+            <div class="ctx-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            </div>
+            <div class="ctx-label">Kerja</div>
+          </div>
+          <div class="ctx-option" onclick="selectCtx(this,'Nonton / Baca','🎬','#ff9f43','watch')">
+            <div class="ctx-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <div class="ctx-label">Nonton</div>
+          </div>
+          <div class="ctx-option" onclick="selectCtx(this,'Gaming','🎮','#a78bfa','game')">
+            <div class="ctx-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><circle cx="15" cy="11" r="1" fill="var(--text3)" stroke="none"/><circle cx="17" cy="13" r="1" fill="var(--text3)" stroke="none"/><path d="M6 20l-2-8h16l-2 8H6z"/><path d="M4 12C4 9 5.5 7 8 6M20 12c0-3-1.5-5-4-6"/></svg>
+            </div>
+            <div class="ctx-label">Gaming</div>
+          </div>
+          <div class="ctx-option" onclick="selectCtx(this,'Rapat / Meeting','📞','#5b8ff9','meeting')">
+            <div class="ctx-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="ctx-label">Rapat</div>
+          </div>
+          <div class="ctx-option" onclick="selectCtx(this,'Makan / Istirahat','☕','#ff9f43','rest')">
+            <div class="ctx-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+            </div>
+            <div class="ctx-label">Santai</div>
+          </div>
+          <div class="ctx-option" onclick="selectCtx(this,'Lainnya','📌','var(--text2)','other')">
+            <div class="ctx-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            </div>
+            <div class="ctx-label">Lainnya</div>
+          </div>
+        </div>
+
+        <!-- Custom Note -->
+        <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Keterangan (opsional)</div>
+        <input class="input-field" id="ctxNote" type="text" placeholder="cth: Kuliah Anatomi Semester 3, belajar ujian..." style="margin-bottom:16px">
+
+        <!-- Duration -->
+        <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Estimasi Durasi</div>
+        <div class="dur-row" style="margin-bottom:20px" id="durRow">
+          <div class="dur-btn" onclick="selectDur(this,'30 mnt')">30 mnt</div>
+          <div class="dur-btn" onclick="selectDur(this,'1 jam')">1 jam</div>
+          <div class="dur-btn selected" onclick="selectDur(this,'2 jam')">2 jam</div>
+          <div class="dur-btn" onclick="selectDur(this,'3+ jam')">3+ jam</div>
+          <div class="dur-btn" onclick="selectDur(this,'Bebas')">Bebas</div>
+        </div>
+
+        <!-- Sensitivity -->
+        <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Sensitivitas Notifikasi</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--card2);border-radius:12px;padding:12px 14px;margin-bottom:20px">
+          <div>
+            <div style="font-size:13px;font-weight:600" id="sensLabel">Sedang</div>
+            <div style="font-size:11px;color:var(--text3)">Notif jika bungkuk &gt; 5 menit</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button onclick="setSens(-1)" style="width:30px;height:30px;border-radius:8px;background:var(--card3);border:1px solid var(--border);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+            <button onclick="setSens(1)" style="width:30px;height:30px;border-radius:8px;background:var(--card3);border:1px solid var(--border);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="saveContext()" style="margin-bottom:6px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Mulai Sesi
+        </button>
+        <button class="btn btn-secondary" onclick="closeModal('modal-context')">Batal</button>
+      </div>
+    </div>
+
+    <!-- SCORE MODAL -->
+    <div class="modal-overlay" id="modal-score" onclick="if(event.target===this)closeModal('modal-score')">
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div style="font-size:18px;font-weight:800;margin-bottom:2px">Detail Skor Hari Ini</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:16px">Senin, 23 Maret 2025</div>
+        <div>
+          <div class="tl-item">
+            <div class="tl-dot" style="background:rgba(0,229,160,0.12);border:1px solid rgba(0,229,160,0.25)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:2px;font-weight:500">07:00 – 09:00</div>
+              <div style="font-size:13px;font-weight:700;color:var(--accent)">Postur Baik • +20 poin</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:2px;line-height:1.5">Kuliah Anatomi. Distribusi tekanan seimbang selama 2 jam.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot" style="background:var(--warn-dim);border:1px solid rgba(255,159,67,0.25)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:2px;font-weight:500">09:15</div>
+              <div style="font-size:13px;font-weight:700;color:var(--warn)">Bungkuk Terdeteksi</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:2px;line-height:1.5">7 menit saat mencatat. Kamu merespons dalam 2 menit.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot" style="background:var(--blue-dim);border:1px solid rgba(91,143,249,0.25)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:2px;font-weight:500">10:00 – 12:00</div>
+              <div style="font-size:13px;font-weight:700;color:var(--blue)">Sesi Terbaik • +32 poin</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:2px;line-height:1.5">Kuliah Fisiologi. Postur sangat baik hampir sepanjang 2 jam.</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot" style="background:rgba(0,229,160,0.12);border:1px solid rgba(0,229,160,0.25)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--warn)"><path d="M9 16C5.5 16 3 13.5 3 11c0-3 1.8-5.5 4.5-6.8-.1 1 .1 2.6 1.2 3.1C8.6 5 10 3 12 2c-.6 2.3 1.6 4.2 1.6 6.5 0 2-1.7 3.5-2.7 3.1.6 1.7-.6 3.1-.6 3.1C11.7 13.6 12 12.5 12 11.5c.9 1.1.7 2.5.7 3.6 0 .7-1 .9-1.8.9H9z"/></svg>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:2px;font-weight:500">Sekarang</div>
+              <div style="font-size:13px;font-weight:700;color:var(--accent)">Streak 7 Hari Terjaga 🔥</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:2px;line-height:1.5">Pertahankan sampai akhir hari!</div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="closeModal('modal-score')">Tutup</button>
+      </div>
+    </div>
+
+    <!-- STREAK MODAL -->
+    <div class="modal-overlay" id="modal-streak" onclick="if(event.target===this)closeModal('modal-streak')">
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div style="text-align:center;margin-bottom:16px">
+          <div style="width:60px;height:60px;border-radius:18px;background:var(--warn-dim);border:1px solid rgba(255,159,67,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="var(--warn)"><path d="M9 21C5.5 21 3 18.5 3 15.5c0-3 1.8-5.5 4.5-6.8-.1 1 .1 2.6 1.2 3.1C8.6 9.3 10 7 12 6c-.6 2.3 1.6 4.2 1.6 6.5 0 2-1.7 3.5-2.7 3.1.6 1.7-.6 3.1-.6 3.1 1.4-1.1 1.7-2.5 1.7-3.1.9 1.1.7 2.5.7 3.6 0 .7-1 1.3-1.8 1.3H9z"/></svg>
+          </div>
+          <div style="font-size:28px;font-weight:800;color:var(--warn)">7 Hari Berturut!</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:4px">Kamu konsisten 7 hari terakhir. Luar biasa!</div>
+        </div>
+        <div style="background:var(--card2);border-radius:14px;padding:14px;margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:7px">
+            <span style="font-size:13px;font-weight:600">Progress → Posture Master</span>
+            <span style="font-size:12px;font-weight:700;color:var(--accent)">7/30</span>
+          </div>
+          <div class="bar-track" style="height:8px"><div class="bar-fill" style="width:23%;background:var(--warn)"></div></div>
+        </div>
+        <button class="btn btn-primary" onclick="closeModal('modal-streak')">Lanjutkan! 🔥</button>
+      </div>
+    </div>
+
+    <!-- TWIN MODAL -->
+    <div class="modal-overlay" id="modal-twin" onclick="if(event.target===this)closeModal('modal-twin')">
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div style="font-size:18px;font-weight:800;margin-bottom:16px">Posture Twin</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <div style="background:var(--card2);border-radius:14px;padding:13px;display:flex;align-items:center;gap:11px">
+            <div style="width:42px;height:42px;border-radius:13px;background:var(--blue-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:700">Rizky M.</div>
+              <div style="font-size:11px;color:var(--text2)">FK Semester 3 • 🔥 5 hari</div>
+            </div>
+            <div class="chip chip-green">Membaik</div>
+          </div>
+          <div style="background:var(--card2);border-radius:14px;padding:13px;display:flex;align-items:center;gap:11px">
+            <div style="width:42px;height:42px;border-radius:13px;background:var(--purple-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.8" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:700">Nadia S.</div>
+              <div style="font-size:11px;color:var(--text2)">FK Semester 3 • 🔥 2 hari</div>
+            </div>
+            <div class="chip chip-warn">Butuh Support</div>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="margin-bottom:8px">Kirim Semangat ke Nadia 💬</button>
+        <button class="btn btn-secondary" onclick="closeModal('modal-twin')">Undang Teman Baru</button>
+      </div>
+    </div>
+
+    <!-- KFR MODAL -->
+    <div class="modal-overlay" id="modal-kfr" onclick="if(event.target===this)closeModal('modal-kfr')">
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div style="font-size:18px;font-weight:800;margin-bottom:2px">Status Klinis</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">Kedokteran Fisik & Rehabilitasi</div>
+        <div style="background:rgba(0,229,160,0.07);border:1px solid rgba(0,229,160,0.18);border-radius:14px;padding:14px;margin-bottom:14px;display:flex;gap:11px">
+          <div style="width:38px;height:38px;border-radius:11px;background:rgba(0,229,160,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--accent)">Status: Baik</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px;line-height:1.5">Tidak ada indikasi rujukan. Data postur 7 hari terakhir dalam batas normal.</div>
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Jika Butuh Konsultasi</div>
+        <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:16px">
+          <div style="background:var(--card2);border-radius:12px;padding:11px;display:flex;align-items:center;gap:10px">
+            <div style="width:30px;height:30px;border-radius:9px;background:var(--blue-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div style="flex:1"><div style="font-size:13px;font-weight:600">RS Dr. Soetomo</div><div style="font-size:11px;color:var(--text3)">Poli KFR • 2.3 km</div></div>
+            <div class="chip chip-blue" style="font-size:10px">Buka</div>
+          </div>
+          <div style="background:var(--card2);border-radius:12px;padding:11px;display:flex;align-items:center;gap:10px">
+            <div style="width:30px;height:30px;border-radius:9px;background:rgba(0,229,160,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div style="flex:1"><div style="font-size:13px;font-weight:600">RSUD Univ. Airlangga</div><div style="font-size:11px;color:var(--text3)">Poli KFR • 0.8 km</div></div>
+            <div class="chip chip-green" style="font-size:10px">Terdekat</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="closeModal('modal-kfr')">Export PDF Data Postur</button>
+      </div>
+    </div>
+
+    <!-- STORY MODAL -->
+    <div class="modal-overlay" id="modal-story" onclick="if(event.target===this)closeModal('modal-story')">
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div style="font-size:18px;font-weight:800;margin-bottom:2px">Posture Story</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px">17 – 23 Maret 2025</div>
+        <div style="background:linear-gradient(135deg,rgba(0,229,160,0.07),rgba(91,143,249,0.07));border:1px solid rgba(0,229,160,0.12);border-radius:16px;padding:18px;margin-bottom:14px">
+          <div style="font-size:14px;line-height:1.8;color:var(--text2)">"Minggu ini kamu duduk belajar <strong style="color:var(--text)">34 jam</strong>. Di 18 jam pertama, posturmu sering bungkuk — terutama saat nulis catatan Senin malam.<br><br>Di <strong style="color:var(--text)">13 jam terakhir</strong>, kamu mulai membaik. Kamu merespons <strong style="color:var(--accent)">4 dari 5 notifikasi</strong> dengan segera.<br><br><strong style="color:var(--accent)">Punggungmu sedang belajar.</strong> Pertahankan."</div>
+        </div>
+        <button class="btn btn-primary" style="margin-bottom:7px">📤 Bagikan ke Instagram</button>
+        <button class="btn btn-secondary" onclick="closeModal('modal-story')">🖼️ Simpan ke Galeri</button>
+      </div>
+    </div>
+
+    <!-- EXERCISE MODALS -->
+    <div class="modal-overlay" id="modal-ex1" onclick="if(event.target===this)closeModal('modal-ex1')">
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:52px;height:52px;border-radius:15px;background:rgba(0,229,160,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(0,229,160,0.2)">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="1.5"/><path d="M12 6v5l-3 3"/><path d="M12 11l3 3"/><path d="M9 9H6"/><path d="M18 9h-3"/><path d="M9 14l-2 4"/><path d="M15 14l2 4"/></svg>
+          </div>
+          <div><div style="font-size:17px;font-weight:800">Chest Opening Stretch</div><div style="font-size:12px;color:var(--text2);margin-top:2px">90 detik • Di Kursi • Pemula</div></div>
+        </div>
+        <div style="background:var(--card2);border-radius:13px;padding:14px;margin-bottom:12px">
+          <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px">CARA MELAKUKAN</div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <div style="display:flex;gap:10px;font-size:13px;align-items:flex-start;line-height:1.5"><span style="color:var(--accent);font-weight:700;font-size:11px;width:20px;flex-shrink:0;margin-top:2px">01</span>Duduk tegak di kursi, kaki rata di lantai</div>
+            <div style="display:flex;gap:10px;font-size:13px;align-items:flex-start;line-height:1.5"><span style="color:var(--accent);font-weight:700;font-size:11px;width:20px;flex-shrink:0;margin-top:2px">02</span>Kaitkan jari di belakang kepala, siku mengarah keluar</div>
+            <div style="display:flex;gap:10px;font-size:13px;align-items:flex-start;line-height:1.5"><span style="color:var(--accent);font-weight:700;font-size:11px;width:20px;flex-shrink:0;margin-top:2px">03</span>Tarik siku ke belakang sambil buka dada, tahan 5 detik</div>
+            <div style="display:flex;gap:10px;font-size:13px;align-items:flex-start;line-height:1.5"><span style="color:var(--accent);font-weight:700;font-size:11px;width:20px;flex-shrink:0;margin-top:2px">04</span>Ulangi 8–10 kali, napas perlahan</div>
+          </div>
+        </div>
+        <div style="background:var(--warn-dim);border:1px solid rgba(255,159,67,0.15);border-radius:11px;padding:10px 12px;margin-bottom:16px;display:flex;gap:7px;align-items:flex-start">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span style="font-size:12px;color:var(--warn)">Divalidasi dokter KFR. Hentikan jika terasa nyeri tajam.</span>
+        </div>
+        <button class="btn btn-primary" onclick="closeModal('modal-ex1')">▶ Mulai Gerakan</button>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-ex2" onclick="if(event.target===this)closeModal('modal-ex2')">
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:52px;height:52px;border-radius:15px;background:var(--blue-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(91,143,249,0.2)">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          </div>
+          <div><div style="font-size:17px;font-weight:800">Thoracic Rotation</div><div style="font-size:12px;color:var(--text2);margin-top:2px">2 menit • Di Kursi • Pemula</div></div>
+        </div>
+        <div style="background:var(--card2);border-radius:13px;padding:14px;margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:10px">CARA MELAKUKAN</div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <div style="display:flex;gap:10px;font-size:13px;align-items:flex-start;line-height:1.5"><span style="color:var(--blue);font-weight:700;font-size:11px;width:20px;flex-shrink:0;margin-top:2px">01</span>Duduk di tepi kursi, kaki selebar bahu</div>
+            <div style="display:flex;gap:10px;font-size:13px;align-items:flex-start;line-height:1.5"><span style="color:var(--blue);font-weight:700;font-size:11px;width:20px;flex-shrink:0;margin-top:2px">02</span>Silangkan tangan di dada</div>
+            <div style="display:flex;gap:10px;font-size:13px;align-items:flex-start;line-height:1.5"><span style="color:var(--blue);font-weight:700;font-size:11px;width:20px;flex-shrink:0;margin-top:2px">03</span>Putar tubuh ke kanan sejauh nyaman, tahan 3 detik</div>
+            <div style="display:flex;gap:10px;font-size:13px;align-items:flex-start;line-height:1.5"><span style="color:var(--blue);font-weight:700;font-size:11px;width:20px;flex-shrink:0;margin-top:2px">04</span>Ulangi ke kiri — lakukan 5 kali tiap sisi</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="closeModal('modal-ex2')">▶ Mulai Gerakan</button>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-ex3" onclick="if(event.target===this)closeModal('modal-ex3')">
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:52px;height:52px;border-radius:15px;background:var(--warn-dim);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(255,159,67,0.2)">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="1.8" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div><div style="font-size:17px;font-weight:800">Core Activation</div><div style="font-size:12px;color:var(--text2);margin-top:2px">90 detik • Di Kursi • Sedang</div></div>
+        </div>
+        <div style="background:var(--card2);border-radius:13px;padding:14px;margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:10px">CARA MELAKUKAN</div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <div style="display:flex;gap:10px;font-size:13px;align-items:flex-start;line-height:1.5"><span style="color:var(--warn);font-weight:700;font-size:11px;width:20px;flex-shrink:0;margin-top:2px">01</span>Duduk tegak, tangan di atas paha</div>
+            <div style="display:flex;gap:10px;font-size:13px;align-items:flex-start;line-height:1.5"><span style="color:var(--warn);font-weight:700;font-size:11px;width:20px;flex-shrink:0;margin-top:2px">02</span>Kencangkan otot perut seperti mau dipukul</div>
+            <div style="display:flex;gap:10px;font-size:13px;align-items:flex-start;line-height:1.5"><span style="color:var(--warn);font-weight:700;font-size:11px;width:20px;flex-shrink:0;margin-top:2px">03</span>Tahan 10 detik sambil napas normal</div>
+            <div style="display:flex;gap:10px;font-size:13px;align-items:flex-start;line-height:1.5"><span style="color:var(--warn);font-weight:700;font-size:11px;width:20px;flex-shrink:0;margin-top:2px">04</span>Lepaskan, ulangi 8 kali</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="closeModal('modal-ex3')">▶ Mulai Gerakan</button>
+      </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div class="toast" id="toast" onclick="document.getElementById('toast').classList.remove('show')">
+      <div style="width:36px;height:36px;border-radius:10px;background:var(--warn-dim);border:1px solid rgba(255,159,67,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;margin-bottom:1px">Postur mulai tidak ideal</div>
+        <div style="font-size:11px;color:var(--text2)">Kamu bungkuk 3 menit. Tegakkan punggung sekarang.</div>
+      </div>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </div>
+
+  </div><!-- /app-body -->
+</div><!-- /phone -->
+
+<script>
+// ── CLOCK ──
+function tick() {
+  const d = new Date();
+  document.getElementById('statusTime').textContent =
+    String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+tick(); setInterval(tick, 10000);
+
+// ── NAVIGATION ──
+let currentScreen = 'home';
+function goTo(name) {
+  const prev = document.getElementById('screen-' + currentScreen);
+  const next = document.getElementById('screen-' + name);
+  if (!next || currentScreen === name) return;
+
+  prev.classList.remove('active');
+  prev.classList.add('prev');
+  next.classList.add('active');
+
+  setTimeout(() => prev.classList.remove('prev'), 350);
+  currentScreen = name;
+
+  if (name === 'insight') setTimeout(initChart, 50);
+}
+
+// ── MODALS ──
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+
+// ── POSTURE SIMULATION ──
+const P = {
+  normal: {
+    label:'Normal', chip:'chip-green',
+    zones:[
+      {bg:'rgba(0,229,160,0.65)',w:'48px',h:'48px',t:'7px',l:'7px',r:'',b:''},
+      {bg:'rgba(0,229,160,0.65)',w:'48px',h:'48px',t:'7px',l:'',r:'7px',b:''},
+      {bg:'rgba(0,229,160,0.5)',w:'46px',h:'46px',t:'',l:'7px',r:'',b:'7px'},
+      {bg:'rgba(0,229,160,0.5)',w:'46px',h:'46px',t:'',l:'',r:'7px',b:'7px'}
+    ],
+    sensors:[['48%','chip-green'],['51%','chip-green'],['49%','chip-green'],['52%','chip-green']]
+  },
+  miring: {
+    label:'Miring Kiri', chip:'chip-warn',
+    zones:[
+      {bg:'rgba(255,159,67,0.85)',w:'68px',h:'68px',t:'3px',l:'3px',r:'',b:''},
+      {bg:'rgba(255,159,67,0.2)',w:'28px',h:'28px',t:'7px',l:'',r:'7px',b:''},
+      {bg:'rgba(255,159,67,0.65)',w:'52px',h:'52px',t:'',l:'3px',r:'',b:'3px'},
+      {bg:'rgba(255,159,67,0.12)',w:'22px',h:'22px',t:'',l:'',r:'7px',b:'7px'}
+    ],
+    sensors:[['79%','chip-warn'],['21%','chip-green'],['72%','chip-warn'],['18%','chip-green']]
+  },
+  bungkuk: {
+    label:'Bungkuk', chip:'chip-warn',
+    zones:[
+      {bg:'rgba(255,159,67,0.82)',w:'62px',h:'62px',t:'3px',l:'3px',r:'',b:''},
+      {bg:'rgba(255,159,67,0.78)',w:'62px',h:'62px',t:'3px',l:'',r:'3px',b:''},
+      {bg:'rgba(0,229,160,0.12)',w:'22px',h:'22px',t:'',l:'7px',r:'',b:'7px'},
+      {bg:'rgba(0,229,160,0.12)',w:'22px',h:'22px',t:'',l:'',r:'7px',b:'7px'}
+    ],
+    sensors:[['73%','chip-warn'],['69%','chip-warn'],['17%','chip-green'],['21%','chip-green']]
+  },
+  lean: {
+    label:'Lean Back', chip:'chip-blue',
+    zones:[
+      {bg:'rgba(91,143,249,0.15)',w:'28px',h:'28px',t:'7px',l:'7px',r:'',b:''},
+      {bg:'rgba(91,143,249,0.15)',w:'28px',h:'28px',t:'7px',l:'',r:'7px',b:''},
+      {bg:'rgba(91,143,249,0.82)',w:'62px',h:'62px',t:'',l:'3px',r:'',b:'3px'},
+      {bg:'rgba(91,143,249,0.78)',w:'62px',h:'62px',t:'',l:'',r:'3px',b:'3px'}
+    ],
+    sensors:[['20%','chip-green'],['17%','chip-green'],['75%','chip-warn'],['78%','chip-warn']]
+  }
+};
+
+let curPosture = 'normal';
+const labels = ['Kiri Depan','Kanan Depan','Kiri Belakang','Kanan Belakang'];
+
+function setPosture(type, e) {
+  if (e) e.stopPropagation();
+  curPosture = type;
+  const p = P[type];
+
+  // chip
+  const chip = document.getElementById('pmChip');
+  chip.className = 'chip ' + p.chip;
+  chip.textContent = p.label;
+
+  // heatmap zones
+  ['hz1','hz2','hz3','hz4'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    const z = p.zones[i];
+    el.style.background = z.bg;
+    el.style.width = z.w; el.style.height = z.h;
+    el.style.top = z.t; el.style.left = z.l;
+    el.style.right = z.r; el.style.bottom = z.b;
+  });
+
+  // sensor data
+  document.getElementById('sensorData').innerHTML =
+    p.sensors.map((s,i) =>
+      `<div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;color:var(--text2)">${labels[i]}</span>
+        <span class="chip ${s[1]}" style="font-size:10px;padding:2px 8px">${s[0]}</span>
+      </div>`
+    ).join('');
+
+  // buttons
+  document.querySelectorAll('.posture-btn').forEach(b => b.classList.remove('active'));
+  const active = document.getElementById('pbtn-' + type);
+  if (active) active.classList.add('active');
+}
+
+function cyclePressure() {
+  const keys = Object.keys(P);
+  setPosture(keys[(keys.indexOf(curPosture)+1)%keys.length], null);
+}
+
+// ── CONTEXT ──
+let selectedCtxLabel = 'Kuliah';
+let selectedCtxColor = '#5b8ff9';
+
+const ctxIcons = {
+  book: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="COLOR" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
+  edit: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="COLOR" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  work: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="COLOR" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`,
+  watch: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="COLOR" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+  game: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="COLOR" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><circle cx="15" cy="11" r="1" fill="COLOR" stroke="none"/><circle cx="17" cy="13" r="1" fill="COLOR" stroke="none"/><path d="M6 20l-2-8h16l-2 8H6z"/></svg>`,
+  meeting: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="COLOR" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  rest: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="COLOR" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>`,
+  other: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="COLOR" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>`
+};
+
+function selectCtx(el, label, emoji, color, iconKey) {
+  document.querySelectorAll('.ctx-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedCtxLabel = label;
+  selectedCtxColor = color;
+  selectedCtxIconKey = iconKey;
+}
+
+let selectedCtxIconKey = 'book';
+
+function selectDur(el, label) {
+  document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+let sensLevel = 1;
+const sensLabels = ['Rendah','Sedang','Tinggi'];
+const sensDesc = ['Notif jika bungkuk > 10 menit','Notif jika bungkuk > 5 menit','Notif jika bungkuk > 2 menit'];
+function setSens(dir) {
+  sensLevel = Math.max(0, Math.min(2, sensLevel + dir));
+  document.getElementById('sensLabel').textContent = sensLabels[sensLevel];
+  document.getElementById('sensLabel').nextElementSibling.textContent = sensDesc[sensLevel];
+}
+
+function saveContext() {
+  const note = document.getElementById('ctxNote').value.trim();
+  const title = note || selectedCtxLabel;
+  const selDur = document.querySelector('.dur-btn.selected');
+  const dur = selDur ? selDur.textContent : '2 jam';
+
+  // Update banner
+  document.getElementById('ctxTitle').textContent = title;
+  document.getElementById('ctxDetail').textContent = `${selectedCtxLabel} • Durasi ${dur}`;
+
+  const wrap = document.getElementById('ctxIconWrap');
+  // set icon color based on selected activity
+  const colorMap = { book:'#5b8ff9', edit:'#00e5a0', work:'#a78bfa', watch:'#ff9f43', game:'#a78bfa', meeting:'#5b8ff9', rest:'#ff9f43', other:'var(--text2)' };
+  const c = colorMap[selectedCtxIconKey] || 'var(--text2)';
+  wrap.style.background = `${c}20`;
+  wrap.innerHTML = (ctxIcons[selectedCtxIconKey] || ctxIcons.other).replace(/COLOR/g, c);
+
+  closeModal('modal-context');
+
+  // show toast feedback
+  showToastCustom('Sesi dimulai!', `${title} • ${sensLabels[sensLevel]} sensitivitas`, 'green');
+}
+
+function showToastCustom(title, body, type) {
+  const t = document.getElementById('toast');
+  t.querySelector('[style*="font-weight:700"]').textContent = title;
+  t.querySelector('[style*="color:var(--text2)"]').textContent = body;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── CHART ──
+let chartInited = false;
+function initChart() {
+  if (chartInited) return;
+  chartInited = true;
+  const ctx = document.getElementById('weekChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['Sen','Sel','Rab','Kam','Jum','Sab','Min'],
+      datasets: [{
+        label: 'Skor',
+        data: [62,58,71,75,80,65,75],
+        borderColor: '#00e5a0',
+        backgroundColor: (ctx) => {
+          const g = ctx.chart.ctx.createLinearGradient(0,0,0,140);
+          g.addColorStop(0,'rgba(0,229,160,0.18)');
+          g.addColorStop(1,'rgba(0,229,160,0)');
+          return g;
+        },
+        borderWidth: 2.2,
+        pointBackgroundColor: '#00e5a0',
+        pointRadius: 3.5,
+        pointHoverRadius: 5,
+        fill: true,
+        tension: 0.42
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false }, tooltip: {
+        backgroundColor: '#1e1e28',
+        borderColor: 'rgba(255,255,255,0.08)',
+        borderWidth: 1,
+        titleColor: '#f4f4ff',
+        bodyColor: '#9898b0',
+        padding: 10,
+        callbacks: { label: c => ` Skor: ${c.raw}` }
+      }},
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: '#5a5a72', font: { family: 'Inter', size: 11 } } },
+        y: { min: 40, max: 100, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: '#5a5a72', font: { family: 'Inter', size: 11 } } }
+      }
+    }
+  });
+}
+
+// ── TOAST (posture alert) ──
+setTimeout(() => {
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 5000);
+}, 3000);
+</script>
+</body>
+</html>

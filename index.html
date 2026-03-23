@@ -68,14 +68,15 @@ body {
 
 /* ── STATUS BAR ── */
 .statusbar {
-  height: 52px;
+  height: 60px;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  padding: 0 24px 10px;
+  padding: 0 24px 12px;
   flex-shrink: 0;
   position: relative;
   z-index: 50;
+  padding-top: max(env(safe-area-inset-top, 0px), 14px);
 }
 
 .status-time { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
@@ -128,8 +129,8 @@ body {
 /* ── NAV BAR ── */
 .bottomnav {
   flex-shrink: 0;
-  height: calc(64px + var(--safe-bottom));
-  padding: 0 8px var(--safe-bottom);
+  height: calc(76px + var(--safe-bottom));
+  padding: 6px 8px calc(8px + var(--safe-bottom));
   display: flex;
   align-items: flex-start;
   background: rgba(17,17,24,0.96);
@@ -145,8 +146,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 10px 0;
+  gap: 4px;
+  padding: 10px 0 6px;
   cursor: pointer;
   color: var(--text3);
   font-size: 10px;
@@ -160,8 +161,8 @@ body {
 .nav-item.active { color: var(--accent); }
 
 .nav-icon {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
